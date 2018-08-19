@@ -1,18 +1,19 @@
 #include "antman.hpp"
+
+#include "boulder.hpp"
 #include <log/log.hpp>
 #include <sdlpp/sdlpp.hpp>
+#include <shade/library.hpp>
 #include <shade/obj.hpp>
 
-Antman::Antman(TextureLibrary &texLib, std::function<char &(int x, int y)> &&aMapFunc)
-  : mapFunc(aMapFunc)
+Antman::Antman(Library &lib, Map &aMap) : map(&aMap)
 {
   for (int i = 1; i <= 9; ++i)
-    standAnim.push_back(
-      std::make_unique<Obj>(texLib, "antman_stand_" + std::to_string(i), "antman"));
+    standAnim.push_back(lib.getObj("antman_stand_" + std::to_string(i), "antman"));
   for (int i = 1; i <= 12; ++i)
-    walkAnim.push_back(std::make_unique<Obj>(texLib, "antman_walk_" + std::to_string(i), "antman"));
+    walkAnim.push_back(lib.getObj("antman_walk_" + std::to_string(i), "antman"));
   for (int i = 1; i <= 24; ++i)
-    pushAnim.push_back(std::make_unique<Obj>(texLib, "antman_push_" + std::to_string(i), "antman"));
+    pushAnim.push_back(lib.getObj("antman_push_" + std::to_string(i), "antman"));
 }
 
 void Antman::draw(Var<glm::mat4> &mvp)
@@ -35,7 +36,7 @@ void Antman::draw(Var<glm::mat4> &mvp)
     auto newX = x + dx;
     auto newY = y + dy;
 
-    auto &ch = mapFunc(newX, newY);
+    auto &ch = (*map)(newX, newY);
     if (ch != '@')
       walkAnim[SDL_GetTicks() * 25 / 1000 % walkAnim.size()]->activate();
     else
@@ -64,7 +65,7 @@ void Antman::stop(int value)
     dir = -1;
 }
 
-float WalkK = 1.0f / 30.0f;
+static float WalkK = 1.0f / 30.0f;
 
 static int sign(float x)
 {
@@ -81,6 +82,11 @@ void Antman::tick()
   dispY += WalkK * sign(y - dispY);
   if (dir < 0)
   {
+    if (pushingBldr)
+    {
+      pushingBldr->push(Boulder::Side::Nope);
+      pushingBldr = nullptr;
+    }
     if (coolDown > 0)
       --coolDown;
     return;
@@ -97,34 +103,64 @@ void Antman::tick()
   auto newX = x + dx;
   auto newY = y + dy;
 
-  auto &ch = mapFunc(newX, newY);
+  auto &ch = (*map)(newX, newY);
+  Boulder *bldr = nullptr;
   switch (ch)
   {
   case 'W': break;
-  case '@': break;
+  case '@':
+    if (newY != y)
+      break;
+    {
+      bldr = map->get<Boulder>(newX, newY);
+      assert(bldr);
+      bldr->push(newX - x > 0 ? Boulder::Side::Left : Boulder::Side::Right);
+    }
+    break;
   case '=':
     ch = ' ';
+    map->moveTo(*this, newX, newY);
     x = newX;
     y = newY;
     break;
   case '#':
     ch = ' ';
+    map->moveTo(*this, newX, newY);
     x = newX;
     y = newY;
     break;
   case ' ':
+    map->moveTo(*this, newX, newY);
     x = newX;
     y = newY;
     break;
   }
+  if (bldr)
+    pushingBldr = bldr;
+  else if (pushingBldr)
+  {
+    pushingBldr->push(Boulder::Side::Nope);
+    pushingBldr = nullptr;
+  }
+    
 }
 
-float Antman::getX() const
+int Antman::getX() const
+{
+  return x;
+}
+
+int Antman::getY() const
+{
+  return y;
+}
+
+float Antman::getDispX() const
 {
   return dispX;
 }
 
-float Antman::getY() const
+float Antman::getDispY() const
 {
   return dispY;
 }

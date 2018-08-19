@@ -1,4 +1,5 @@
 #include "antman.hpp"
+#include "map.hpp"
 #include <sdlpp/sdlpp.hpp>
 #include <shade/obj.hpp>
 #include <shade/shader_program.hpp>
@@ -10,32 +11,30 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 
-static const char Map[] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
-                          "W ======#===============================#==========#================W"
-                          "W=========#==========@================@============@==========@=====W"
-                          "W=======WWWWWWWWWWWWWW==========WWWWWWWWWWWWWWWWWWWW=WWWWWWWWWWW====W"
-                          "W=#=====W==#=========W====#=====W===============W==============W====W"
-                          "W=======W============#==========W==###======###=W==###==###====W====W"
-                          "W=======W==#=========W=============###======###=W==###==###====W====W"
-                          "W=======W============W==========W==###======###=W==###==###====W====W"
-                          "W=======WWWWWWWWWWWWWW===@@@====W===============W==============W====W"
-                          "W========================@@@====WWWWWWWW=WWWWWWWWWWWWWWW=WWWWWWW====W"
-                          "W===========@=======@====@@@====W===============W==============W==#=W"
-                          "W=======WWWWWWWWWWWWWW==========W=###=======###=W===###====###=W====W"
-                          "W=======W==#====#====W=====#======###=======###=W===###====###=W====W"
-                          "W=======W============#==========W=###=======###=W===###====###=W====W"
-                          "W=======W===#=====#==W==========W========@======W==============W====W"
-                          "W==#====WWWWWWWWWWWWWW======#===WWWWWWWW=WWWWWWWWWWWWWWW=WWWWWWW====W"
-                          "W==================================================#================W"
-                          "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
+static const char Map1[] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
+                           "W ======#===============================#==========#================W"
+                           "W==  @   =#==========@================@============@==========@=====W"
+                           "W=======WWWWWWWWWWWWWW==========WWWWWWWWWWWWWWWWWWWW=WWWWWWWWWWW====W"
+                           "W=#=====W==#=========W====#=====W===============W==============W====W"
+                           "W=======W============#==========W==###======###=W==###==###====W====W"
+                           "W=======W==#=========W=============###======###=W==###==###====W====W"
+                           "W=======W============W==========W==###======###=W==###==###====W====W"
+                           "W=======WWWWWWWWWWWWWW===@@@====W===============W==============W====W"
+                           "W========================@@@====WWWWWWWW=WWWWWWWWWWWWWWW=WWWWWWW====W"
+                           "W===========@=======@====@@@====W===============W==============W==#=W"
+                           "W=======WWWWWWWWWWWWWW==========W=###=======###=W===###====###=W====W"
+                           "W=======W==#====#====W=====#======###=======###=W===###====###=W====W"
+                           "W=======W============#==========W=###=======###=W===###====###=W====W"
+                           "W=======W===#=====#==W==========W========@======W==============W====W"
+                           "W==#====WWWWWWWWWWWWWW======#===WWWWWWWW=WWWWWWWWWWWWWWW=WWWWWWW====W"
+                           "W==================================================#================W"
+                           "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
 
-static const auto MapWidth = 72 - 3;
-static const auto MapHeight = (sizeof(Map) - 1) / MapWidth;
-static_assert((sizeof(Map) - 1) % MapWidth == 0, "Incorrect map width");
+static const auto Map1Width = 72 - 3;
+static_assert((sizeof(Map1) - 1) % Map1Width == 0, "Incorrect map width");
 
 int main()
 {
-  std::string map = Map;
   sdl::Init init(SDL_INIT_EVERYTHING);
   const auto Width = 1280;
   const auto Height = 720;
@@ -55,37 +54,31 @@ int main()
 
   ShaderProgram shad("shad", "shad", mvp, proj, view);
 
-  TextureLibrary texLib(rend.get());
+  Library lib(rend.get());
 
-  Obj dirt(texLib, "dirt");
-  Obj boulder(texLib, "boulder");
-  Obj diamond(texLib, "diamond");
-  Obj wall(texLib, "wall");
-
-  Antman antman(texLib, [&map](int x, int y) -> char & { return map[x + y * MapWidth]; });
+  Map map(lib, Map1, Map1Width);
 
   sdl::EventHandler evHand;
   auto done = false;
   evHand.quit = [&done](const SDL_QuitEvent &) { done = true; };
-  evHand.keyDown = [&antman](const SDL_KeyboardEvent &keyEv) {
+  evHand.keyDown = [&map](const SDL_KeyboardEvent &keyEv) {
     switch (keyEv.keysym.sym)
     {
-    case SDLK_RIGHT: antman.run(0); break;
-    case SDLK_DOWN: antman.run(1); break;
-    case SDLK_LEFT: antman.run(2); break;
-    case SDLK_UP: antman.run(3); break;
+    case SDLK_RIGHT: map.antman->run(0); break;
+    case SDLK_DOWN: map.antman->run(1); break;
+    case SDLK_LEFT: map.antman->run(2); break;
+    case SDLK_UP: map.antman->run(3); break;
     }
   };
-  evHand.keyUp = [&antman](const SDL_KeyboardEvent &keyEv) {
+  evHand.keyUp = [&map](const SDL_KeyboardEvent &keyEv) {
     switch (keyEv.keysym.sym)
     {
-    case SDLK_RIGHT: antman.stop(0); break;
-    case SDLK_DOWN: antman.stop(1); break;
-    case SDLK_LEFT: antman.stop(2); break;
-    case SDLK_UP: antman.stop(3); break;
+    case SDLK_RIGHT: map.antman->stop(0); break;
+    case SDLK_DOWN: map.antman->stop(1); break;
+    case SDLK_LEFT: map.antman->stop(2); break;
+    case SDLK_UP: map.antman->stop(3); break;
     }
   };
-
 
   auto simulClock = SDL_GetTicks();
   while (!done)
@@ -95,47 +88,20 @@ int main()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shad.use();
-    view = glm::lookAt(glm::vec3(2.0f * antman.getX(), 20, 2.0f * antman.getY()),
-                       glm::vec3(2.0f * antman.getX(), 0, 2.0f * antman.getY()), // and looks at the origin
+    view = glm::lookAt(glm::vec3(2.0f * map.antman->getDispX(), 20, 2.0f * map.antman->getDispY()),
+                       glm::vec3(2.0f * map.antman->getDispX(),
+                                 0,
+                                 2.0f * map.antman->getDispY()), // and looks at the origin
                        glm::vec3(0, 0, -1));
     view.update();
     proj.update();
 
-    for (auto y = 0u; y < MapHeight; ++y)
-      for (auto x = 0u; x < MapWidth; ++x)
-      {
-        switch (map[x + y * MapWidth])
-        {
-        case 'W':
-          mvp = glm::translate(glm::vec3(x * 2, 0.0f, y * 2));
-          mvp.update();
-          wall.activate();
-          break;
-        case '@':
-          mvp = glm::translate(glm::vec3(x * 2, 0.0f, y * 2));
-          mvp.update();
-          boulder.activate();
-          break;
-        case '=':
-          mvp = glm::translate(glm::vec3(x * 2, 0.0f, y * 2));
-          mvp.update();
-          dirt.activate();
-          break;
-        case '#':
-          mvp = glm::translate(glm::vec3(x * 2, 0.0f, y * 2)) *
-                glm::rotate(SDL_GetTicks() / 1000.0f, glm::vec3(0, 0, 1));
-          mvp.update();
-          diamond.activate();
-          break;
-        }
-      }
-
-    antman.draw(mvp);
+    map.draw(mvp);
     rend.present();
 
     if (SDL_GetTicks() > simulClock)
     {
-      antman.tick();
+      map.tick();
       simulClock += 10;
     }
   }
