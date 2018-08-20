@@ -1,4 +1,5 @@
 #include "boulder.hpp"
+#include "fall_rate.hpp"
 #include <shade/library.hpp>
 #include <shade/obj.hpp>
 
@@ -36,21 +37,24 @@ void Boulder::push(Side side)
     ++pushCount;
 }
 
-static float WalkK = 1.0f / 30.0f;
-
-static int sign(float x)
+static float walkK()
 {
-  if (x > WalkK)
+  return 1.0f / fallRate();
+}
+
+static float sign(float x)
+{
+  if (x > walkK())
     return 1;
-  if (x < -WalkK)
+  if (x < -walkK())
     return -1;
-  return 0;
+  return x / walkK();
 }
 
 void Boulder::tick()
 {
-  dispX += WalkK * sign(x - dispX);
-  dispY += WalkK * sign(y - dispY);
+  dispX += walkK() * sign(x - dispX);
+  dispY += walkK() * sign(y - dispY);
   if (pushCount % 4 == 0 && pushSide != Side::Nope)
   {
     ++pushCount;
@@ -67,7 +71,7 @@ void Boulder::tick()
     if (under == ' ')
     {
       fallCount++;
-      if (fallCount % 35 == 0)
+      if (fallCount % fallRate() == 0)
       {
         map->moveTo(*this, x, newY);
         y = newY;
@@ -76,7 +80,7 @@ void Boulder::tick()
     else if (under != '=' && (*map)(x - 1, y) == ' ' && (*map)(x - 1, y + 1) == ' ')
     {
       fallCount++;
-      if (fallCount % 35 == 0)
+      if (fallCount % fallRate() == 0)
       {
         map->moveTo(*this, x - 1, y);
         x = x - 1;
@@ -85,7 +89,7 @@ void Boulder::tick()
     else if (under != '=' && (*map)(x + 1, y) == ' ' && (*map)(x + 1, y + 1) == ' ')
     {
       fallCount++;
-      if (fallCount % 35 == 0)
+      if (fallCount % fallRate() == 0)
       {
         map->moveTo(*this, x + 1, y);
         x = x + 1;
@@ -100,5 +104,5 @@ void Boulder::draw(Var<glm::mat4> &mvp)
 {
   mvp = glm::translate(glm::vec3(dispX * 2, 0.0f, dispY * 2));
   mvp.update();
-  model->activate();
+  model->draw();
 }

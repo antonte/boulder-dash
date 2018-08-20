@@ -1,8 +1,11 @@
 #include "antman.hpp"
 #include "map.hpp"
+#include <coeff/coefficient_registry.hpp>
+#include <log/log.hpp>
 #include <sdlpp/sdlpp.hpp>
 #include <shade/obj.hpp>
 #include <shade/shader_program.hpp>
+#include <shade/text.hpp>
 #include <shade/var.hpp>
 
 #define GL_GLEXT_PROTOTYPES 1
@@ -33,8 +36,14 @@ static const char Map1[] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
 static const auto Map1Width = 72 - 3;
 static_assert((sizeof(Map1) - 1) % Map1Width == 0, "Incorrect map width");
 
+COEFF(TextX, 64);
+COEFF(TextY, 40);
+COEFF(TextZoom, 1.0f);
+COEFF(MapZ, 20.0f);
+
 int main()
 {
+  CoefficientRegistry::instance().load();
   sdl::Init init(SDL_INIT_EVERYTHING);
   const auto Width = 1280;
   const auto Height = 720;
@@ -47,8 +56,7 @@ int main()
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  Var<glm::mat4> proj("proj",
-                      glm::perspective(glm::radians(45.0f), 1.0f * Width / Height, 0.1f, 100.0f));
+  Var<glm::mat4> proj("proj");
   Var<glm::mat4> view("view");
   Var<glm::mat4> mvp("mvp");
 
@@ -61,7 +69,14 @@ int main()
   sdl::EventHandler evHand;
   auto done = false;
   evHand.quit = [&done](const SDL_QuitEvent &) { done = true; };
-  evHand.keyDown = [&map](const SDL_KeyboardEvent &keyEv) {
+  Text coeffText(lib, "font", 59, 115);
+  coeffText.setText(CoefficientRegistry::instance().display());
+  evHand.keyDown = [&map, &coeffText](const SDL_KeyboardEvent &keyEv) {
+    if (CoefficientRegistry::instance().onKeyDown(keyEv.keysym.sym))
+    {
+      coeffText.setText(CoefficientRegistry::instance().display());
+      return;
+    }
     switch (keyEv.keysym.sym)
     {
     case SDLK_RIGHT: map.antman->run(0); break;
@@ -80,23 +95,41 @@ int main()
     }
   };
 
+  Text diamondsCount(lib, "font", 59, 115);
   auto simulClock = SDL_GetTicks();
   while (!done)
   {
     while (evHand.poll()) {}
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.1f, 0.04f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shad.use();
-    view = glm::lookAt(glm::vec3(2.0f * map.antman->getDispX(), 20, 2.0f * map.antman->getDispY()),
+    view = glm::lookAt(glm::vec3(2.0f * map.antman->getDispX(), MapZ, 2.0f * map.antman->getDispY()),
                        glm::vec3(2.0f * map.antman->getDispX(),
                                  0,
                                  2.0f * map.antman->getDispY()), // and looks at the origin
                        glm::vec3(0, 0, -1));
     view.update();
+    proj = glm::perspective(glm::radians(45.0f), 1.0f * Width / Height, 0.1f, 100.0f);
+    proj.update();
+    map.draw(mvp);
+
+    view = glm::mat4(1.0f);
+    view.update();
+    proj = glm::ortho(0.0f, 128.0f, 0.0f, 72.0f);
     proj.update();
 
-    map.draw(mvp);
+    mvp = glm::translate(glm::vec3(TextX, TextY, 0.0f)) *
+          glm::scale(glm::vec3(TextZoom, TextZoom, TextZoom));
+    mvp.update();
+    coeffText.draw();
+
+    mvp = glm::translate(glm::vec3(0.0f, 2.0f * TextZoom, 0.0f)) * mvp.get();
+    mvp.update();
+    diamondsCount.setText("Diamonds: " + std::to_string(map.getDiamondsCount()));
+    diamondsCount.draw();
+
+
     rend.present();
 
     if (SDL_GetTicks() > simulClock)

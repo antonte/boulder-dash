@@ -1,10 +1,13 @@
 #include "antman.hpp"
 
 #include "boulder.hpp"
+#include "diamond.hpp"
 #include <log/log.hpp>
 #include <sdlpp/sdlpp.hpp>
 #include <shade/library.hpp>
 #include <shade/obj.hpp>
+#include <coeff/coefficient_registry.hpp>
+
 
 Antman::Antman(Library &lib, Map &aMap) : map(&aMap)
 {
@@ -36,16 +39,16 @@ void Antman::draw(Var<glm::mat4> &mvp)
     auto newX = x + dx;
     auto newY = y + dy;
 
-    auto &ch = (*map)(newX, newY);
-    if (ch != '@')
-      walkAnim[SDL_GetTicks() * 25 / 1000 % walkAnim.size()]->activate();
+    auto ch = (*map)(newX, newY);
+    if (ch != Boulder::Symb)
+      walkAnim[SDL_GetTicks() * 25 / 1000 % walkAnim.size()]->draw();
     else
-      pushAnim[SDL_GetTicks() * 25 / 1000 % pushAnim.size()]->activate();
+      pushAnim[SDL_GetTicks() * 25 / 1000 % pushAnim.size()]->draw();
   }
   else
   {
     mvp.update();
-    standAnim[SDL_GetTicks() * 25 / 1000 % standAnim.size()]->activate();
+    standAnim[SDL_GetTicks() * 25 / 1000 % standAnim.size()]->draw();
   }
 }
 
@@ -65,21 +68,26 @@ void Antman::stop(int value)
     dir = -1;
 }
 
-static float WalkK = 1.0f / 30.0f;
+COEFF(WalkCoolDown, 30)
 
-static int sign(float x)
+static float walkK()
 {
-  if (x > WalkK)
+  return 1.0f / WalkCoolDown;
+}
+
+static float sign(float x)
+{
+  if (x > walkK())
     return 1;
-  if (x < -WalkK)
+  if (x < -walkK())
     return -1;
-  return 0;
+  return x / walkK();
 }
 
 void Antman::tick()
 {
-  dispX += WalkK * sign(x - dispX);
-  dispY += WalkK * sign(y - dispY);
+  dispX += walkK() * sign(x - dispX);
+  dispY += walkK() * sign(y - dispY);
   if (dir < 0)
   {
     if (pushingBldr)
@@ -91,8 +99,8 @@ void Antman::tick()
       --coolDown;
     return;
   }
-  coolDown = 30;
-  if (ticks++ % 30 != 0)
+  coolDown = WalkCoolDown;
+  if (ticks++ % WalkCoolDown != 0)
     return;
 
   int dxs[] = {1, 0, -1, 0};
@@ -103,12 +111,12 @@ void Antman::tick()
   auto newX = x + dx;
   auto newY = y + dy;
 
-  auto &ch = (*map)(newX, newY);
+  auto ch = (*map)(newX, newY);
   Boulder *bldr = nullptr;
   switch (ch)
   {
   case 'W': break;
-  case '@':
+  case Boulder::Symb:
     if (newY != y)
       break;
     {
@@ -118,13 +126,11 @@ void Antman::tick()
     }
     break;
   case '=':
-    ch = ' ';
     map->moveTo(*this, newX, newY);
     x = newX;
     y = newY;
     break;
-  case '#':
-    ch = ' ';
+  case Diamond::Symb:
     map->moveTo(*this, newX, newY);
     x = newX;
     y = newY;
@@ -142,7 +148,6 @@ void Antman::tick()
     pushingBldr->push(Boulder::Side::Nope);
     pushingBldr = nullptr;
   }
-    
 }
 
 int Antman::getX() const
