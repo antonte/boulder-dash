@@ -37,24 +37,24 @@ void Boulder::push(Side side)
     ++pushCount;
 }
 
-static float walkK()
+static float moveK()
 {
   return 1.0f / fallRate();
 }
 
 static float sign(float x)
 {
-  if (x > walkK())
+  if (x > moveK())
     return 1;
-  if (x < -walkK())
+  if (x < -moveK())
     return -1;
-  return x / walkK();
+  return x / moveK();
 }
 
 void Boulder::tick()
 {
-  dispX += walkK() * sign(x - dispX);
-  dispY += walkK() * sign(y - dispY);
+  dispX += moveK() * sign(x - dispX);
+  dispY += moveK() * sign(y - dispY);
   if (pushCount % 4 == 0 && pushSide != Side::Nope)
   {
     ++pushCount;

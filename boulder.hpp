@@ -1,5 +1,6 @@
 #pragma once
 #include "map.hpp"
+#include <shade/obj.hpp>
 #include <shade/var.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -22,7 +23,7 @@ public:
   void draw(Var<glm::mat4> &mvp);
 
 private:
-  Obj* model;
+  Obj *model;
   int x;
   int y;
   float dispX;

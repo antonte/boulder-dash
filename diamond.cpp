@@ -81,7 +81,8 @@ void Diamond::tick()
 
 void Diamond::draw(Var<glm::mat4> &mvp)
 {
-  mvp = glm::translate(glm::vec3(dispX * 2, 0.0f, dispY * 2));
+  mvp = glm::translate(glm::vec3(dispX * 2, 0.0f, dispY * 2)) *
+        glm::rotate(SDL_GetTicks() / 1000.0f, glm::vec3(0, 0, 1));
   mvp.update();
   model->draw();
 }

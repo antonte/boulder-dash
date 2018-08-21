@@ -3,6 +3,7 @@
 #include <shade/var.hpp>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
@@ -10,8 +11,9 @@
 class Antman;
 class Boulder;
 class Diamond;
-class Obj;
 class Library;
+class Mob;
+class Obj;
 
 class Map
 {
@@ -41,6 +43,7 @@ private:
   Obj *wall;
   std::unordered_map<int, std::unique_ptr<Boulder>> boulders;
   std::unordered_map<int, std::unique_ptr<Diamond>> diamonds;
+  std::unordered_map<int, std::unique_ptr<Mob>> mobs;
   int diamondsCount = 0;
 };
 
@@ -61,3 +64,6 @@ void Map::moveTo<Boulder>(Boulder &entity, int x, int y);
 
 template <>
 void Map::moveTo<Diamond>(Diamond &entity, int x, int y);
+
+template <>
+void Map::moveTo<Mob>(Mob &entity, int x, int y);

@@ -2,6 +2,7 @@
 #include "antman.hpp"
 #include "boulder.hpp"
 #include "diamond.hpp"
+#include "mob.hpp"
 #include <shade/library.hpp>
 #include <shade/obj.hpp>
 
@@ -27,6 +28,7 @@ Map::Map(Library &aLib, const char *aMap, int aWidth)
       case Diamond::Symb:
         diamonds[mapXy(x, y)] = std::make_unique<Diamond>(*lib, x, y, *this);
         break;
+      case Mob::Symb: mobs[mapXy(x, y)] = std::make_unique<Mob>(*lib, x, y, *this); break;
       }
     }
 }
@@ -48,16 +50,14 @@ void Map::draw(Var<glm::mat4> &mvp)
   for (auto y = 0; y < height; ++y)
     for (auto x = 0; x < width; ++x)
     {
+      mvp = glm::translate(glm::vec3(x * 2, 0.0f, y * 2));
+      mvp.update();
       switch (operator()(x, y))
       {
       case 'W':
-        mvp = glm::translate(glm::vec3(x * 2, 0.0f, y * 2));
-        mvp.update();
         wall->draw();
         break;
       case '=':
-        mvp = glm::translate(glm::vec3(x * 2, 0.0f, y * 2));
-        mvp.update();
         dirt->draw();
         break;
       }
@@ -67,6 +67,8 @@ void Map::draw(Var<glm::mat4> &mvp)
   for (auto &&entity : boulders)
     entity.second->draw(mvp);
   for (auto &&entity : diamonds)
+    entity.second->draw(mvp);
+  for (auto &&entity : mobs)
     entity.second->draw(mvp);
 }
 void Map::tick()
@@ -85,6 +87,13 @@ void Map::tick()
     diamondCopy.push_back(entity.second.get());
 
   for (auto &&entity : diamondCopy)
+    entity->tick();
+
+  std::vector<Mob *> mobCopy;
+  for (auto &&entity : mobs)
+    mobCopy.push_back(entity.second.get());
+
+  for (auto &&entity : mobCopy)
     entity->tick();
 }
 
@@ -164,3 +173,21 @@ void Map::moveTo<Diamond>(Diamond &entity, int x, int y)
   diamonds[newXy] = std::move(it->second);
   diamonds.erase(curXy);
 }
+
+template <>
+void Map::moveTo<Mob>(Mob &entity, int x, int y)
+{
+  auto curXy = mapXy(entity.getX(), entity.getY());
+  auto newXy = mapXy(x, y);
+  passiveMap[curXy] = ' ';
+  passiveMap[newXy] = Mob::Symb;
+
+  auto it = mobs.find(curXy);
+  assert(it != std::end(mobs));
+  assert(&entity == it->second.get());
+  mobs[newXy] = std::move(it->second);
+  mobs.erase(curXy);
+}
+
+
+
