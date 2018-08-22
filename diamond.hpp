@@ -1,30 +1,21 @@
 #pragma once
-#include "map.hpp"
+#include "entity.hpp"
 #include <shade/var.hpp>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/transform.hpp>
-
 class Library;
+class Obj;
 
-class Diamond
+class Diamond : public Entity
 {
 public:
   enum { Symb = '#' };
   Diamond(Library &, int x, int y, Map &map);
-  int getX() const;
-  int getY() const;
-  float getDispX() const;
-  float getDispY() const;
-  void tick();
-  void draw(Var<glm::mat4> &mvp);
+  void tick() override;
+  void draw(Var<glm::mat4> &mvp) override;
 
 private:
-  Obj* model;
-  int x;
-  int y;
-  float dispX;
-  float dispY;
-  Map *map;
+  float moveK() const override;
+
+  Obj *model;
   int fallCount = 0;
 };

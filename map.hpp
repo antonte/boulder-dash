@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
@@ -29,6 +30,7 @@ public:
   T *get(int x, int y);
   template <typename T>
   void moveTo(T &entity, int x, int y);
+  void kill(int x, int y);
 
   std::unique_ptr<Antman> antman;
 
@@ -45,6 +47,7 @@ private:
   std::unordered_map<int, std::unique_ptr<Diamond>> diamonds;
   std::unordered_map<int, std::unique_ptr<Mob>> mobs;
   int diamondsCount = 0;
+  std::vector<std::function<void()>> deferred;
 };
 
 template <>

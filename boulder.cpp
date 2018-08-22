@@ -1,31 +1,13 @@
 #include "boulder.hpp"
+#include "antman.hpp"
 #include "fall_rate.hpp"
+#include "mob.hpp"
 #include <shade/library.hpp>
 #include <shade/obj.hpp>
 
-Boulder::Boulder(Library &lib, int aX, int aY, Map &aMap)
-  : model(lib.getObj("boulder")), x(aX), y(aY), dispX(aX), dispY(aY), map(&aMap)
+Boulder::Boulder(Library &lib, int x, int y, Map &map)
+  : Entity(x, y, map), model(lib.getObj("boulder"))
 {
-}
-
-int Boulder::getX() const
-{
-  return x;
-}
-
-int Boulder::getY() const
-{
-  return y;
-}
-
-float Boulder::getDispX() const
-{
-  return dispX;
-}
-
-float Boulder::getDispY() const
-{
-  return dispY;
 }
 
 void Boulder::push(Side side)
@@ -37,24 +19,14 @@ void Boulder::push(Side side)
     ++pushCount;
 }
 
-static float moveK()
+float Boulder::moveK() const
 {
   return 1.0f / fallRate();
 }
 
-static float sign(float x)
-{
-  if (x > moveK())
-    return 1;
-  if (x < -moveK())
-    return -1;
-  return x / moveK();
-}
-
 void Boulder::tick()
 {
-  dispX += moveK() * sign(x - dispX);
-  dispY += moveK() * sign(y - dispY);
+  Entity::tick();
   if (pushCount % 4 == 0 && pushSide != Side::Nope)
   {
     ++pushCount;
@@ -102,7 +74,7 @@ void Boulder::tick()
 
 void Boulder::draw(Var<glm::mat4> &mvp)
 {
-  mvp = glm::translate(glm::vec3(dispX * 2, 0.0f, dispY * 2));
+  mvp = glm::translate(glm::vec3(getDispX() * 2, 0.0f, getDispY() * 2));
   mvp.update();
   model->draw();
 }

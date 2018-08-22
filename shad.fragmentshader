@@ -4,7 +4,7 @@ in vec3 vNormal;
 uniform sampler2D tex;
 
 void main(){
-  float fDotProduct = min(1.0, max(0.0, dot(vNormal, vec3(1.0, 1.0, -1.0))));
+  float fDotProduct = min(1.0, max(0.0, dot(vNormal, vec3(.577, .577, -.577))));
   vec3 rgb = texture(tex, uv).rgb;
   float a = texture(tex, uv).a;
   color = vec4(rgb * fDotProduct + rgb * 0.7, a);

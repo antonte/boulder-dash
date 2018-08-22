@@ -34,12 +34,15 @@ static const char Map1[] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
                            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
 
 static const auto Map1Width = 72 - 3;
+static const auto Map1Height = (sizeof(Map1) - 1) / Map1Width;
 static_assert((sizeof(Map1) - 1) % Map1Width == 0, "Incorrect map width");
 
 COEFF(TextX, 64);
 COEFF(TextY, 40);
 COEFF(TextZoom, 1.0f);
 COEFF(MapZ, 20.0f);
+COEFF(MinXCam, 0);
+COEFF(MinYCam, 0);
 
 int main()
 {
@@ -61,6 +64,7 @@ int main()
   Var<glm::mat4> mvp("mvp");
 
   ShaderProgram shad("shad", "shad", mvp, proj, view);
+  ShaderProgram textShad("text", "text", mvp, proj);
 
   Library lib(rend.get());
 
@@ -77,6 +81,8 @@ int main()
       coeffText.setText(CoefficientRegistry::instance().display());
       return;
     }
+    if (!map.antman)
+      return;
     switch (keyEv.keysym.sym)
     {
     case SDLK_RIGHT: map.antman->run(0); break;
@@ -86,6 +92,8 @@ int main()
     }
   };
   evHand.keyUp = [&map](const SDL_KeyboardEvent &keyEv) {
+    if (!map.antman)
+      return;
     switch (keyEv.keysym.sym)
     {
     case SDLK_RIGHT: map.antman->stop(0); break;
@@ -97,6 +105,8 @@ int main()
 
   Text diamondsCount(lib, "font", 59, 115);
   auto simulClock = SDL_GetTicks();
+  auto antmanX = map.antman->getDispX();
+  auto antmanY = map.antman->getDispY();
   while (!done)
   {
     while (evHand.poll()) {}
@@ -104,18 +114,24 @@ int main()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shad.use();
-    view = glm::lookAt(glm::vec3(2.0f * map.antman->getDispX(), MapZ, 2.0f * map.antman->getDispY()),
-                       glm::vec3(2.0f * map.antman->getDispX(),
-                                 0,
-                                 2.0f * map.antman->getDispY()), // and looks at the origin
+    if (map.antman)
+    {
+      antmanX = map.antman->getDispX();
+      antmanY = map.antman->getDispY();
+    }
+    auto xCam = std::min(Map1Width - static_cast<float>(MinXCam) - 1,
+                         std::max(static_cast<float>(MinXCam), antmanX));
+    auto yCam = std::min(Map1Height - static_cast<float>(MinYCam) - 1,
+                         std::max(static_cast<float>(MinYCam), antmanY));
+    view = glm::lookAt(glm::vec3(2.0f * xCam, MapZ, 2.0f * yCam),
+                       glm::vec3(2.0f * xCam, 0, 2.0f * yCam), // and looks at the origin
                        glm::vec3(0, 0, -1));
     view.update();
     proj = glm::perspective(glm::radians(45.0f), 1.0f * Width / Height, 0.1f, 100.0f);
     proj.update();
     map.draw(mvp);
 
-    view = glm::mat4(1.0f);
-    view.update();
+    textShad.use();
     proj = glm::ortho(0.0f, 128.0f, 0.0f, 72.0f);
     proj.update();
 

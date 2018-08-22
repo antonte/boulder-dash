@@ -1,29 +1,20 @@
 #pragma once
-#include "map.hpp"
+#include "entity.hpp"
 #include <shade/obj.hpp>
-#include <shade/var.hpp>
-
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/transform.hpp>
 
 class Library;
 
-class Mob
+class Mob: public Entity
 {
 public:
   enum { Symb = 'X' };
   Mob(Library &, int x, int y, Map &map);
-  void tick();
-  void draw(Var<glm::mat4> &mvp);
-  int getX() const;
-  int getY() const;
+  void tick() override;
+  void draw(Var<glm::mat4> &mvp) override;
 
 private:
-  int x;
-  int y;
-  float dispX;
-  float dispY;
-  Map *map;
+  float moveK() const override;
+
   std::vector<Obj *> model;
   int ticks = 0;
   int dir = 0;

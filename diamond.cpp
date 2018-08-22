@@ -1,51 +1,24 @@
 #include "diamond.hpp"
+#include "antman.hpp"
 #include "fall_rate.hpp"
+#include "map.hpp"
+#include "mob.hpp"
 #include <shade/library.hpp>
 #include <shade/obj.hpp>
 
-Diamond::Diamond(Library &lib, int aX, int aY, Map &aMap)
-  : model(lib.getObj("diamond")), x(aX), y(aY), dispX(aX), dispY(aY), map(&aMap)
+Diamond::Diamond(Library &lib, int x, int y, Map &map)
+  : Entity(x, y, map), model(lib.getObj("diamond"))
 {
 }
 
-int Diamond::getX() const
-{
-  return x;
-}
-
-int Diamond::getY() const
-{
-  return y;
-}
-
-float Diamond::getDispX() const
-{
-  return dispX;
-}
-
-float Diamond::getDispY() const
-{
-  return dispY;
-}
-
-static float walkK()
+float Diamond::moveK() const
 {
   return 1.0f / fallRate();
 }
 
-static float sign(float x)
-{
-  if (x > walkK())
-    return 1;
-  if (x < -walkK())
-    return -1;
-  return x / walkK();
-}
-
 void Diamond::tick()
 {
-  dispX += walkK() * sign(x - dispX);
-  dispY += walkK() * sign(y - dispY);
+  Entity::tick();
   auto newY = y + 1;
   auto under = (*map)(x, newY);
   if (under == ' ')
@@ -81,7 +54,7 @@ void Diamond::tick()
 
 void Diamond::draw(Var<glm::mat4> &mvp)
 {
-  mvp = glm::translate(glm::vec3(dispX * 2, 0.0f, dispY * 2)) *
+  mvp = glm::translate(glm::vec3(getDispX() * 2, 0.0f, getDispY() * 2)) *
         glm::rotate(SDL_GetTicks() / 1000.0f, glm::vec3(0, 0, 1));
   mvp.update();
   model->draw();

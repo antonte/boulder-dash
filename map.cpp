@@ -1,6 +1,7 @@
 #include "map.hpp"
 #include "antman.hpp"
 #include "boulder.hpp"
+
 #include "diamond.hpp"
 #include "mob.hpp"
 #include <shade/library.hpp>
@@ -54,16 +55,13 @@ void Map::draw(Var<glm::mat4> &mvp)
       mvp.update();
       switch (operator()(x, y))
       {
-      case 'W':
-        wall->draw();
-        break;
-      case '=':
-        dirt->draw();
-        break;
+      case 'W': wall->draw(); break;
+      case '=': dirt->draw(); break;
       }
     }
 
-  antman->draw(mvp);
+  if (antman)
+    antman->draw(mvp);
   for (auto &&entity : boulders)
     entity.second->draw(mvp);
   for (auto &&entity : diamonds)
@@ -73,7 +71,8 @@ void Map::draw(Var<glm::mat4> &mvp)
 }
 void Map::tick()
 {
-  antman->tick();
+  if (antman)
+    antman->tick();
 
   std::vector<Boulder *> bouldCopy;
   for (auto &&bould : boulders)
@@ -95,6 +94,9 @@ void Map::tick()
 
   for (auto &&entity : mobCopy)
     entity->tick();
+
+  for (auto &&d : deferred)
+    d();
 }
 
 template <>
@@ -127,7 +129,6 @@ int Map::mapXy(int x, int y) const
 {
   return x + y * width;
 }
-
 
 template <>
 void Map::moveTo<Antman>(Antman &entity, int x, int y)
@@ -189,5 +190,30 @@ void Map::moveTo<Mob>(Mob &entity, int x, int y)
   mobs.erase(curXy);
 }
 
-
-
+void Map::kill(int x, int y)
+{
+  auto xY = mapXy(x, y);
+  switch (passiveMap[xY])
+  {
+  case Antman::Symb:
+  case Mob::Symb:
+  {
+    for (int dx = -1; dx <= 1; ++dx)
+      for (int dy = -1; dy <= 1; ++dy)
+      {
+        auto xxYY = mapXy(x + dx, y + dy);
+        auto &ch = passiveMap[xxYY];
+        if (ch == ' ' || ch == '=' || ch == Antman::Symb || ch == Mob::Symb || ch == Boulder::Symb)
+        {
+          ch = Diamond::Symb;
+          diamonds[xxYY] = std::make_unique<Diamond>(*lib, x + dx, y + dy, *this);
+          deferred.push_back([this, xxYY]() { mobs.erase(xxYY); });
+          deferred.push_back([this, xxYY]() { boulders.erase(xxYY); });
+          if (antman->getX() == x + dx && antman->getY() == y + dy)
+            deferred.push_back([this]() { antman = nullptr; });
+        }
+      }
+  }
+  break;
+  }
+}

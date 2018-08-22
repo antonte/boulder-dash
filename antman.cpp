@@ -8,8 +8,7 @@
 #include <shade/obj.hpp>
 #include <coeff/coefficient_registry.hpp>
 
-
-Antman::Antman(Library &lib, Map &aMap) : map(&aMap)
+Antman::Antman(Library &lib, Map &map) : Entity(1, 1, map)
 {
   for (int i = 1; i <= 9; ++i)
     standAnim.push_back(lib.getObj("antman_stand_" + std::to_string(i), "antman"));
@@ -21,7 +20,7 @@ Antman::Antman(Library &lib, Map &aMap) : map(&aMap)
 
 void Antman::draw(Var<glm::mat4> &mvp)
 {
-  mvp = glm::translate(glm::vec3(dispX * 2.0f, 0.0f, dispY * 2.0f));
+  mvp = glm::translate(glm::vec3(getDispX() * 2.0f, 0.0f, getDispY() * 2.0f));
   if (coolDown > 0)
   {
     switch (oldDir)
@@ -70,24 +69,14 @@ void Antman::stop(int value)
 
 COEFF(WalkCoolDown, 30)
 
-static float walkK()
+float Antman::moveK() const
 {
   return 1.0f / WalkCoolDown;
 }
 
-static float sign(float x)
-{
-  if (x > walkK())
-    return 1;
-  if (x < -walkK())
-    return -1;
-  return x / walkK();
-}
-
 void Antman::tick()
 {
-  dispX += walkK() * sign(x - dispX);
-  dispY += walkK() * sign(y - dispY);
+  Entity::tick();
   if (dir < 0)
   {
     if (pushingBldr)
@@ -148,24 +137,4 @@ void Antman::tick()
     pushingBldr->push(Boulder::Side::Nope);
     pushingBldr = nullptr;
   }
-}
-
-int Antman::getX() const
-{
-  return x;
-}
-
-int Antman::getY() const
-{
-  return y;
-}
-
-float Antman::getDispX() const
-{
-  return dispX;
-}
-
-float Antman::getDispY() const
-{
-  return dispY;
 }

@@ -1,6 +1,9 @@
-MapZ = 28.3320
-TextZoom = 2.00676
-TextY = 6
 FallRate = 18
-WalkCoolDown = 15
+MinYCam = 5
 TextX = 2
+CoolDown = 20
+WalkCoolDown = 15
+TextY = 6
+TextZoom = 2.0067598819732666
+MapZ = 30.986288070678711
+MinXCam = 9
