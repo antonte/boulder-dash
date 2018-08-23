@@ -21,6 +21,11 @@ void Diamond::tick()
   Entity::tick();
   auto newY = y + 1;
   auto under = (*map)(x, newY);
+  if (isFalling && (under == Antman::Symb || under == Mob::Symb))
+  {
+    map->kill(x, newY);
+    return;
+  }
   if (under == ' ')
   {
     fallCount++;
@@ -50,6 +55,7 @@ void Diamond::tick()
   }
   else
     fallCount = 0;
+  isFalling = (under == ' ');
 }
 
 void Diamond::draw(Var<glm::mat4> &mvp)

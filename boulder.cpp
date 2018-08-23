@@ -40,6 +40,11 @@ void Boulder::tick()
   {
     auto newY = y + 1;
     auto under = (*map)(x, newY);
+    if (isFalling && (under == Antman::Symb || under == Mob::Symb))
+    {
+      map->kill(x, newY);
+      return;
+    }
     if (under == ' ')
     {
       fallCount++;
@@ -69,6 +74,7 @@ void Boulder::tick()
     }
     else
       fallCount = 0;
+    isFalling = (under == ' ');
   }
 }
 

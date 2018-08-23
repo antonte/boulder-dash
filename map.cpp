@@ -97,6 +97,7 @@ void Map::tick()
 
   for (auto &&d : deferred)
     d();
+  deferred.clear();
 }
 
 template <>

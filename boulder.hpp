@@ -22,4 +22,5 @@ private:
   Side pushSide = Side::Nope;
   int pushCount = 0;
   int fallCount = 0;
+  bool isFalling = false;
 };

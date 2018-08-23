@@ -18,4 +18,5 @@ private:
 
   Obj *model;
   int fallCount = 0;
+  bool isFalling = false;
 };
